@@ -11,6 +11,13 @@ Amazfit Bip 6. Mantido em https://github.com/rxdrigues-777/openGym.
 - `api/server.js`: só ganchos (import do `fs` via `fsbridge.js`, `reloadDb`, `handleRequest`
   exportado, `FileMap` para desafios e pareamentos, `listen` fora da Vercel).
 
+- `api/watch.js` + `api/watch-routes.js`: `GET /api/watch/today` e `POST /api/watch/workout`
+  para o app do relógio. Usam as bibliotecas de `frontend/src/lib` (inclusive
+  `finishIntoState`, extraída de `sheets.jsx`). A imagem Docker da API não leva `frontend/`:
+  nela essas duas rotas respondem 500; o resto funciona.
+- `api/server.js`: o `PUT /api/data` grava por `storeState(user, body, readCurrent)`, reaproveitada
+  pela rota do relógio.
+
 ## Limites conhecidos na Vercel
 - Corpo de requisição até 4,5 MB (limite da Vercel). Um documento de estado maior que isso não
   sincroniza.

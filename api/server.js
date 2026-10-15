@@ -4,6 +4,7 @@ import http from 'node:http';
 import crypto from 'node:crypto';
 import fs, { vfs } from './fsbridge.js';
 import { FileMap } from './file-map.js';
+import { watchRoutes } from './watch-routes.js';
 import path from 'node:path';
 import https from 'node:https';
 import dns from 'node:dns';
@@ -2271,6 +2272,9 @@ const routes = {
 
   // Always there: more passkeys and device links need nothing an instance has to switch on.
   ...passkeyRoutes,
+
+  // The paired watch's routes (watch-routes.js): today's routines, and a finished workout.
+  ...watchRoutes({ readSession, readStateStrict, UNREADABLE, storeState, forClient, json, readBody }),
 
   // `rev` is the server's own count of writes to this profile (also stored inside the document as
   // `_rev`, so every other reader of the file — reminder tick, admin, Coach, MCP — is unaffected).
