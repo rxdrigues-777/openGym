@@ -1,0 +1,28 @@
+✖ "nothing to change" keeps the reason it gave, and proposes nothing
+✖ a create job produces a bundle the client can merge unchanged
+✖ a data directory the server cannot write to is 503, not healthy
+✖ a debrief is enqueued as its own kind, and the cohort routes gate on the admin switch and the opt-in
+✖ a profile credential lives in its own file, not in synced state
+✖ a proposal nobody has answered is not replaced by the next scheduled review
+✖ a refine carries the plan it is refining, and counts as the next iteration
+✖ a review job produces a checked change-set, and nothing is left unvalidated
+✖ a runtime that cannot be cancelled still has its late answer discarded after a forget
+✖ a scheduled review reads a batch of workouts once, not once per tick
+✖ a well-formed answer naming an exercise nobody has is refused, twice, and applies nothing
+✖ a workout the phone dated tomorrow is not re-read once the review has covered it
+✖ an answer that stays unusable fails cleanly and applies nothing
+✖ an answer the model was paid for counts as the review, even when it was unusable
+✖ an expired proposal disappears on read rather than lingering forever
+✖ an id is cut, a policy outside the engine's five and a number that is not one read as absent
+✖ an unwritable ./data cannot take the process down through the rest timer nobody awaits
+✖ api/nudge-copy.js matches the frontend strings (node scripts/build-nudge-copy.mjs)
+✖ atomicWrite: bytes flushed, then the rename, then the directory
+✖ core/prompts.js matches api/coach/prompts/*.md byte for byte
+✖ db.json unreadable after a sign-up: the copy kept is the last save, so the new profile is still there
+✖ every error code the e-mail and password signup routes return is in their spec entry
+✖ folders are 0700 and files 0600, and an admin deleting the profile removes its folder
+✖ review payload carries the plan, the window, effort and aggregates
+✖ the admin test-run completes a round trip without a user to spend
+✖ the instance cap is reserved at enqueue, so a job still running already counts
+✖ the one repair round rescues an answer the validator rejected
+✖ the plan and the log a real app writes pass through exactly as before
