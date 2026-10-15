@@ -47,3 +47,9 @@ Conflitos esperados só nos ganchos do `server.js` listados acima.
 `cd api && npm test` → 596 testes, 568 passam, 28 falham antes de qualquer mudança deste fork
 (permissões POSIX, fim de linha CRLF e coach). Esses 28 não contam como regressão; a lista está
 em `.baseline-api-failures.txt`.
+
+## Aceite da Etapa 1 (2026-10-15)
+- [x] Passkey (Face ID) no iPhone, PWA na tela de início como "Cadê o Shape"
+- [x] Rotina e treino sincronizados entre iPhone e PC
+- [x] Dados na tabela `files` do Supabase
+- [x] `INVITE_ONLY=1` e `DEFAULT_LANG=pt-BR` em produção (cadastro sem convite recusado com 403)
