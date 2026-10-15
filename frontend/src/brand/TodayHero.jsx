@@ -9,7 +9,9 @@ import { glyphOf } from '../lib/glyphs.js'
 import { DAYN } from '../lib/format.js'
 import { COPY } from './copy.js'
 
-export default function TodayHero({ active, editingSaved, activeName, doneToday, routine, todayName, todayOvr, next, exCount, onToday, onOther }) {
+export default function TodayHero({ hasPlan = true, active, editingSaved, activeName, doneToday, routine, todayName, todayOvr, next, exCount, onToday, onOther }) {
+  // No routines yet: the welcome card below is the first thing to do, not a giant rest day.
+  if (!hasPlan && !active && !doneToday) return null
   const title = active ? (editingSaved ? activeName : t('{0} (in progress)', activeName))
     : doneToday ? (doneToday.name ? t('{0} (done)', doneToday.name) : t('Workout done'))
     : routine ? todayName : t('Rest day')

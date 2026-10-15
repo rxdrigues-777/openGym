@@ -35,3 +35,12 @@ describe('settings search with the look locked', () => {
     expect(searchSettings('accent', ctx, s => s).map(h => h.title)).not.toContain('Accent color')
   })
 })
+
+describe('brand layer and the rest-over flash', () => {
+  it('sets its colours for the dark theme only, so the light flash (TimerFlash) still lights the screen', async () => {
+    const { readFileSync } = await import('node:fs')
+    const css = readFileSync(new URL('./brand.css', import.meta.url), 'utf8')
+    expect(css).toMatch(/:root,\s*:root\[data-theme="dark"\]\s*\{/)
+    expect(css).not.toMatch(/:root\[data-theme\]\s*\{/)
+  })
+})

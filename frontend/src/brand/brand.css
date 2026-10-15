@@ -1,7 +1,9 @@
 /* Cadê o Shape — the brand layer (spec 2026-10-15-etapa4 §4). Loaded after index.css, so these
    tokens win; index.css itself stays as upstream ships it. Style A: the watch app's look. */
 
-:root, :root[data-theme] {
+/* Dark only: the theme is locked dark, so data-theme="light" now comes only from the rest-over
+   flash (components/TimerFlash.jsx), and upstream's light tokens must still win there. */
+:root, :root[data-theme="dark"] {
   --bg:#000000; --bg-el:#0b0b0d;
   --surface:#141518; --surface-2:#1f2125; --surface-3:#2a2d32;
   --label:#f2f2f2; --label-2:#8c9097; --label-3:rgba(140,144,151,.72); --label-4:rgba(140,144,151,.36);

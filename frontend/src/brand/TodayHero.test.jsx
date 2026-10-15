@@ -55,3 +55,11 @@ it('starts or resumes on a tap of the card, and opens the picker from the door',
   act(() => [...host.querySelectorAll('button')].find(b => b.textContent.includes('Choose a different workout')).click())
   expect(onOther).toHaveBeenCalledOnce()
 })
+
+it('stays out of the way of a brand-new profile, so the welcome card leads', () => {
+  render({ hasPlan: false })
+  expect(q('.today-hero')).toBeNull()
+  act(() => root.unmount()); host.remove()
+  render({ hasPlan: false, active: true, activeName: 'Free session' })
+  expect(q('.today-row .tag').textContent).toBe('Resume')
+})
