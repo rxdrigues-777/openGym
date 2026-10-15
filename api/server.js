@@ -2,7 +2,8 @@
    No framework, JSON-file storage, signed session cookies.               */
 import http from 'node:http';
 import crypto from 'node:crypto';
-import fs from 'node:fs';
+import fs, { vfs } from './fsbridge.js';
+import { FileMap } from './file-map.js';
 import path from 'node:path';
 import https from 'node:https';
 import dns from 'node:dns';
@@ -33,7 +34,7 @@ import { createDeviceLink, findDeviceLink, burnDeviceLink, dropDeviceLinks } fro
 import { createMediaStore, mediaLimits, mediaConfig, MediaError, HASH_RE } from './media.js';
 import { effectiveRoutineId } from './queue.js';
 import { stampPut } from './sync-stamps.js';
-import { atomicWrite as durableWrite } from './durable.js';
+import { atomicWrite as durableWrite } from './fsbridge.js';
 import { excusedOn, nudgeFor, nudgeWindowOpen, toneOf } from './nudge.js';
 
 const PORT = +(process.env.PORT || 3000);
@@ -140,12 +141,18 @@ function loadDb() {
     }
   }
 }
-let db = loadDb();
-db.users = db.users || [];
-db.creds = db.creds || [];
-db.subs = db.subs || [];
-db.invites = db.invites || [];
-db.deviceLinks = db.deviceLinks || [];   // unused one-time device links, hashed (device-link.js)
+let db;
+// Called again by vercel-handler.js before every request: there db.json may have been written by
+// another instance since this one last read it (fsbridge.js).
+export function reloadDb() {
+  db = loadDb();
+  db.users = db.users || [];
+  db.creds = db.creds || [];
+  db.subs = db.subs || [];
+  db.invites = db.invites || [];
+  db.deviceLinks = db.deviceLinks || [];   // unused one-time device links, hashed (device-link.js)
+}
+reloadDb();
 const isAdmin = user => !!user && (user.admin === true || ADMIN_UIDS.includes(user.id));
 // 0600: db.json holds passkey credential material. It used to be covered by a blanket 0700 on
 // the whole directory; now that the directory stays traversable, the file carries its own mode.
@@ -684,7 +691,8 @@ function csrfOk(req, key) {
 // POST /api/device-link/options hands to anyone holding a code finished a *sign-up* instead: a
 // passkey on the owner's profile and a session for it, without using the code up, as often as
 // wanted, and past "sign out everywhere".
-const challenges = new Map(); // cid -> {kind, challenge, name?, uid?, exp}
+// On a serverless deployment the two halves of a ceremony may run on different instances (FileMap).
+const challenges = vfs ? new FileMap(fs, path.join(DATA, 'challenges.json')) : new Map(); // cid -> {kind, challenge, name?, uid?, exp}
 // POST /api/login/options is anonymous and unthrottled, and every call leaves a challenge here
 // for five minutes, so the Map has a ceiling: past it the oldest goes. A ceremony takes seconds,
 // so only a flood far beyond any real sign-in traffic reaches back far enough to cost one.
@@ -707,7 +715,7 @@ setInterval(() => { for (const [k, v] of challenges) if (v.exp < Date.now()) cha
 // A passkey ceremony can't run inside the app's WebView (its origin never matches RP_ID), so the
 // app authenticates by redeeming a short code minted from an already signed-in browser tab —
 // same 5-min-TTL/one-shot shape as the WebAuthn challenge store above.
-const pairings = new Map(); // code -> {uid, exp}
+const pairings = vfs ? new FileMap(fs, path.join(DATA, 'pairings.json')) : new Map(); // code -> {uid, exp}
 const PAIR_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I — read off a screen
 function makePairCode() {
   let code;
@@ -2623,7 +2631,7 @@ function bodyDeadline(req) {
 // The Capacitor WebView origins of the Android and iOS app.
 const APP_ORIGINS = new Set(['https://localhost', 'capacitor://localhost', 'http://localhost']);
 
-const server = http.createServer(async (req, res) => {
+export async function handleRequest(req, res) {
   bodyDeadline(req);
   // Same-origin (the deployed nginx-proxied web app) never triggers CORS, so this only matters
   // for the paired mobile app calling in from its own WebView origin. It carries no cookie
@@ -2695,7 +2703,8 @@ const server = http.createServer(async (req, res) => {
     console.error(key, e);
     if (!res.headersSent) json(res, 500, { error: 'server error' });
   }
-});
+}
+const server = http.createServer(handleRequest);
 // Node's default of 300 s for a whole request would answer 408 to a 40 MB video on a ~1 Mbit/s
 // uplink. Half an hour covers that; a stalled upload is cut much sooner by its own 60 s idle
 // timer in media.js, a client that never finishes its headers still meets headersTimeout, and
@@ -2706,4 +2715,5 @@ server.headersTimeout = 60000;
 // port that was actually bound: with PORT=0 the OS picks one, and a caller that did not choose it
 // (the tests spawn the server that way, and so does anyone running two instances on one box) has
 // no other way to learn it.
-server.listen(PORT, () => console.log(`gym-api on :${server.address().port} (rpID=${RP_ID}, origin=${ORIGIN})`));
+// On Vercel the platform calls handleRequest through vercel-handler.js; nothing listens.
+if (!process.env.VERCEL) server.listen(PORT, () => console.log(`gym-api on :${server.address().port} (rpID=${RP_ID}, origin=${ORIGIN})`));
