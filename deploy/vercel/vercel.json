@@ -7,6 +7,12 @@
     "gru1"
   ],
   "fluid": false,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    }
+  ],
   "crons": [
     {
       "path": "/api/health",
