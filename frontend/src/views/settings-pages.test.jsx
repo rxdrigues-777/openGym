@@ -43,6 +43,8 @@ vi.mock('../sheets.jsx', () => ({
 }))
 
 import Settings from './Settings.jsx'
+// Cadê o Shape locks the look (brand/brand.js); these upstream tests cover the full page set.
+vi.mock('../brand/brand.js', async orig => { const m = await orig(); return { ...m, BRAND: { ...m.BRAND, lockedLook: false } } })
 
 globalThis.__APP_VERSION__ ??= 'test'
 

@@ -75,10 +75,27 @@ describe('the worker keeps the on-demand code too', () => {
 
   it('the build stamps the worker with both', () => {
     const vite = readFileSync(fileURLToPath(new URL('../../vite.config.js', import.meta.url)), 'utf8')
-    expect(vite).toMatch(/generateBundle\(_, bundle\) \{ lazy = lazyAssets\(bundle\) \}/)
+    // Cadê o Shape appends its brand pictures (scripts/sw-stamp.mjs BRAND_OFFLINE).
+    expect(vite).toMatch(/generateBundle\(_, bundle\) \{ lazy = \[\.\.\.lazyAssets\(bundle\), \.\.\.BRAND_OFFLINE\] \}/)
     expect(vite).toMatch(/stampSw\(readFileSync\(sw, 'utf8'\), \{ stamp, lazy \}\)/)
     const sw = stampSw(source, { stamp: 'abc', lazy: ["./assets/it's.js"] })
     expect(sw).toContain("const CACHE = 'opengym-rt-abc'")
     expect(sw).not.toContain('__LAZY__')
+  })
+})
+
+describe('Cadê o Shape: the brand fonts and pictures are kept for offline use', () => {
+  it('lists the bundled font files', () => {
+    const bundle = {
+      'assets/index-a.js': { type: 'chunk', moduleIds: ['/src/main.jsx'] },
+      'assets/barlow-latin-400-normal-x.woff2': { type: 'asset' },
+      'assets/barlow-latin-400-normal-x.woff': { type: 'asset' },
+    }
+    expect(lazyAssets(bundle)).toEqual(['./assets/barlow-latin-400-normal-x.woff2', './assets/index-a.js'])
+  })
+
+  it('adds the brand pictures from public/', async () => {
+    const { BRAND_OFFLINE } = await import('../../scripts/sw-stamp.mjs')
+    expect(BRAND_OFFLINE).toEqual(['./brand/icone.png', './brand/logo.png'])
   })
 })

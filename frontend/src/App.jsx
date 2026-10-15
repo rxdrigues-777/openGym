@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
+import { lockedPrefs } from './brand/brand.js'
 import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation, useNavigationType } from 'react-router-dom'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
@@ -58,6 +59,7 @@ const resolveTheme = theme => theme === 'light' || theme === 'dark'
   : (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
 
 function applyPrefs(theme, accent) {
+  ;({ theme, accent } = lockedPrefs(theme, accent))
   const de = document.documentElement
   de.dataset.theme = resolveTheme(theme)
   applyAccent(de, accent, de.dataset.theme)
