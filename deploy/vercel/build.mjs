@@ -4,6 +4,7 @@ import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { applyBrand } from './brand.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
@@ -18,6 +19,7 @@ if (process.env.MEDIA_BASE) {
 execSync('npm run build', { cwd: path.join(repo, 'frontend'), stdio: 'inherit', env });
 fs.rmSync(out, { recursive: true, force: true });
 fs.cpSync(path.join(repo, 'frontend', 'dist'), out, { recursive: true });
+applyBrand(out);
 if (!process.env.MEDIA_BASE) {
   for (const kind of ['still', 'clip']) {
     fs.cpSync(path.join(repo, 'catalogue', 'media', kind), path.join(out, 'exercise-media', kind), { recursive: true });
