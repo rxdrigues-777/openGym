@@ -32,6 +32,13 @@ Amazfit Bip 6. Mantido em https://github.com/rxdrigues-777/openGym.
 - Build local (`node deploy/vercel/build.mjs`, 2026-10-15): 243 MB e 13.196 arquivos com a mídia
   dos exercícios incluída.
 
+## Produção (2026-10-15)
+- https://cadeoshape.vercel.app — Vercel (time Renkiden Studio, região gru1), Supabase
+  `cade-o-shape` (sa-east-1). Mídia dos exercícios servida como estático pela própria Vercel.
+- O PWA sai do build com o nome e os ícones "Cadê o Shape" (`deploy/vercel/brand.mjs`).
+- `/api/*` passa por `deploy/vercel/api/index.js` via `rewrites`: um `[...path].js` não pega
+  caminhos com mais de um nível fora do Next.js.
+
 ## Atualizar a partir do upstream
     git fetch upstream && git merge upstream/main
 Conflitos esperados só nos ganchos do `server.js` listados acima.
