@@ -1,0 +1,2 @@
+ FAIL  scripts/check-mobile-bundle.test.mjs [ scripts/check-mobile-bundle.test.mjs ]
+ FAIL  src/sheets.day-note.test.jsx > where a noted day shows > the calendar marks it, with the note as its tooltip and a legend entry
