@@ -69,7 +69,7 @@ test('an upload lands in the profile document, readable by the phone', async () 
   const w = data.json.state.workouts.find(x => x.id === r.json.workoutId);
   assert.equal(w.watch.clientId, workout.clientId);
   assert.deepEqual(w.prs, ['0025']);
-  assert.ok(w._ts > 0 || data.json.state._ts > 0);
+  assert.ok(data.json.state._ts > 0, 'the change is stamped, so devices merge it');
 });
 
 test('a resend is a 200 duplicate and the revision does not move', async () => {

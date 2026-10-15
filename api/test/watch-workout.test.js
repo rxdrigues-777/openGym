@@ -100,3 +100,74 @@ test('malformed payloads are refused with the reason', () => {
   assert.match(validateWatchWorkout({ ...ok, entries: [{ exId: '0025', sets: [{ w: -1, r: 5, at: 1 }] }] }), /w/);
   assert.match(validateWatchWorkout(null), /body/);
 });
+
+// ---- review fixes: row shapes beyond plain reps, ids, the phone's side of the sync ----
+import { mergeStates, stampChange } from '../../frontend/src/lib/sync-merge.js';
+import { buildWatchToday } from '../watch.js';
+
+const routineState = ex => normalizeState({ routines: [{ id: 'r1', name: 'Push A', ex }] });
+
+test('a per-side exercise keeps both sides done, so the entry is saved', () => {
+  const S = routineState([{ id: '0025', sets: 2, reps: 10, side: true }]);
+  const today = buildWatchToday(S, '2026-10-15').routines[0].exercises[0];
+  assert.equal(today.perSide, true);
+  assert.equal(today.sets[0].r, 10);
+  applyWatchWorkout(S, payload({ entries: [{ exId: '0025', sets: [
+    { w: 12, r: 10, at: T0 + 1000 }, { w: 12, r: 8, at: T0 + 2000 },
+  ] }] }), { now: T0 + 4000000 });
+  const [entry] = S.workouts[0].entries;
+  assert.equal(entry.id, '0025');
+  assert.deepEqual(entry.sets.map(x => [x.sides.L.r, x.sides.R.r, x.sides.L.done, x.sides.R.done, x.done]),
+    [[5, 5, true, true, true], [4, 4, true, true, true]]);
+  assert.equal(entry.sets[0].sides.L.w, 12);
+});
+
+test('a timed exercise goes to the watch with its seconds and comes back with the seconds held', () => {
+  const S = routineState([{ id: '0025', mode: 'time', sets: 2, sec: 45 }]);
+  const today = buildWatchToday(S, '2026-10-15').routines[0].exercises[0];
+  assert.equal(today.mode, 'time');
+  assert.equal(today.sets[0].sec, 45);
+  applyWatchWorkout(S, payload({ entries: [{ exId: '0025', sets: [
+    { w: 0, r: 0, at: T0 + 1000, durSec: 52 }, { w: 0, r: 0, at: T0 + 2000, durSec: 40 },
+  ] }] }), { now: T0 + 4000000 });
+  assert.deepEqual(S.workouts[0].entries[0].sets.map(x => x.sec), [52, 40]);
+});
+
+test('the warmup flag the watch sends wins over the row index', () => {
+  const S = routineState([{ id: '0025', sets: 1, reps: 8, weight: 60, warmupSets: 1 }]);
+  applyWatchWorkout(S, payload({ entries: [{ exId: '0025', sets: [
+    { w: 70, r: 8, at: T0 + 1000, warmup: false }, { w: 70, r: 8, at: T0 + 2000, warmup: false },
+  ] }] }), { now: T0 + 4000000 });
+  const [entry] = S.workouts[0].entries;
+  assert.equal(entry.sets.filter(x => x.phase === 'warmup' || x.warmup === true).length, 0);
+  assert.deepEqual(S.workouts[0].prs, ['0025']);
+});
+
+test('two different clientIds never share a workout id', () => {
+  const S = state();
+  const a = applyWatchWorkout(S, payload({ clientId: 'w-20261015-abc123' }), { now: T0 + 4000000 });
+  const b = applyWatchWorkout(S, payload({ clientId: 'x-20261015-abc123' }), { now: T0 + 4000001 });
+  assert.notEqual(a.workoutId, b.workoutId);
+  assert.equal(S.workouts.length, 2);
+});
+
+test('a watch workout earlier than a later record takes that record away from it', () => {
+  const later = { id: 'later', d: '2026-10-17', start: T0 + 2 * 864e5, end: T0 + 2 * 864e5 + 3600000,
+    routineIds: ['r1'], entries: [{ id: '0025', sets: [{ w: 61, r: 5, done: true }], topW: 61 }], prs: ['0025'] };
+  const S = state({ workouts: [later] });
+  applyWatchWorkout(S, payload(), { now: T0 + 3 * 864e5 });
+  assert.deepEqual(S.workouts.find(w => w.id === 'later').prs, []);
+  assert.deepEqual(S.workouts.find(w => w.id !== 'later').prs, ['0025']);
+});
+
+test('the phone, holding an older copy without it, keeps the watch workout when it merges', () => {
+  const phone = state({ _ts: T0 - 1000 });
+  const server = structuredClone(phone);
+  applyWatchWorkout(server, payload(), { now: T0 + 4000000 });
+  server._ts = stampChange(phone, server, T0 + 4000000);
+  for (const merged of [mergeStates(phone, server), mergeStates(server, phone)]) {
+    const s = merged.state || merged;
+    assert.equal(s.workouts.length, 1);
+    assert.equal(s.workouts[0].watch.clientId, 'w-20261015-abc123');
+  }
+});
