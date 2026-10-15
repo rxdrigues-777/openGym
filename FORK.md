@@ -20,6 +20,17 @@ Amazfit Bip 6. Mantido em https://github.com/rxdrigues-777/openGym.
   requisição é descartada no próximo `begin()` do disco virtual.
 - Painel admin enxerga só o que está no cache da requisição; pensado para uma pessoa.
 
+## Deploy
+- Supabase: rodar `deploy/supabase/001_files.sql` no projeto (região sa-east-1).
+- Vercel: projeto apontando para este repositório, **Root Directory = `deploy/vercel`**, com
+  "Include files outside the Root Directory" ligado (padrão).
+- Variáveis na Vercel: `STORAGE_DRIVER=supabase`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `SESSION_SECRET`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `RP_ID`, `ORIGIN`, `RP_NAME=openGym`,
+  `DATA_DIR=/data`, `COACH_DISABLED=1`, `MEDIA_UPLOADS=0`, `AUDIT_LOG=0`, `ALLOW_GUEST=0`,
+  e opcionalmente `MEDIA_BASE`.
+- Build local (`node deploy/vercel/build.mjs`, 2026-10-15): 243 MB e 13.196 arquivos com a mídia
+  dos exercícios incluída.
+
 ## Atualizar a partir do upstream
     git fetch upstream && git merge upstream/main
 Conflitos esperados só nos ganchos do `server.js` listados acima.

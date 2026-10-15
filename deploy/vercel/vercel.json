@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm ci --prefix ../../api --omit=optional && npm ci --prefix ../../frontend",
+  "buildCommand": "node build.mjs",
+  "outputDirectory": "public",
+  "fluid": false,
+  "crons": [{ "path": "/api/health", "schedule": "0 9 * * *" }],
+  "headers": [
+    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/(.*)", "headers": [{ "key": "Content-Security-Policy", "value": "frame-ancestors 'none'" }] }
+  ]
+}
