@@ -21,7 +21,8 @@ Amazfit Bip 6. Mantido em https://github.com/rxdrigues-777/openGym.
 - Painel admin enxerga só o que está no cache da requisição; pensado para uma pessoa.
 
 ## Deploy
-- Supabase: rodar `deploy/supabase/001_files.sql` no projeto (região sa-east-1).
+- Supabase: rodar `deploy/supabase/001_files.sql` no projeto (região sa-east-1). O
+  `900_spike_s6.sql` é só do spike S6 do relógio (tabela descartável, com limite).
 - Vercel: projeto apontando para este repositório, **Root Directory = `deploy/vercel`**, com
   "Include files outside the Root Directory" ligado (padrão).
 - Variáveis na Vercel: `STORAGE_DRIVER=supabase`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,

@@ -3,11 +3,14 @@
 // /options and /verify halves of a sign-in, or the create and redeem of a pairing code, may run
 // on two different instances, so the Map has to live where both can see it. Re-read whenever
 // the file's text moved (another instance wrote it), written back on every change.
+// `isExpired` drops stale entries as they are read: the timers server.js prunes its Maps with
+// barely ever run on a serverless instance, and an abandoned sign-in would otherwise stay forever.
 export class FileMap extends Map {
-  constructor(fs, file) {
+  constructor(fs, file, { isExpired = () => false } = {}) {
     super();
     this.fs = fs;
     this.file = file;
+    this.isExpired = isExpired;
     this.text = undefined;
   }
   sync() {
@@ -16,7 +19,7 @@ export class FileMap extends Map {
     if (text === this.text) return;
     this.text = text;
     super.clear();
-    if (text) for (const [k, v] of JSON.parse(text)) super.set(k, v);
+    if (text) for (const [k, v] of JSON.parse(text)) if (!this.isExpired(v)) super.set(k, v);
   }
   save() {
     this.text = JSON.stringify([...super.entries()]);

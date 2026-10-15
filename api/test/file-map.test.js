@@ -39,6 +39,21 @@ test('iteration, keys and size see the stored entries; deleting while iterating 
   assert.equal(m.keys().next().value, 'b');
 });
 
+test('expired entries are dropped on read and gone from the file after the next write', async () => {
+  const remote = createMemoryRemote({
+    'challenges.json': JSON.stringify([['old', { exp: Date.now() - 1000 }], ['live', { exp: Date.now() + 60000 }]]),
+  });
+  const v = createVfs({ dataDir: DATA, remote });
+  await v.begin();
+  const m = new FileMap(v.fs, FILE, { isExpired: e => e.exp < Date.now() });
+  assert.equal(m.has('old'), false);
+  assert.equal(m.size, 1);
+  m.set('new', { exp: Date.now() + 60000 });
+  await v.commit();
+  const stored = JSON.parse(remote.rows.get('challenges.json').body).map(([k]) => k);
+  assert.deepEqual(stored, ['live', 'new']);
+});
+
 test('an absent file is an empty map', async () => {
   const v = createVfs({ dataDir: DATA, remote: createMemoryRemote() });
   await v.begin();

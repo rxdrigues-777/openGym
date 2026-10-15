@@ -59,7 +59,20 @@ function unavailable(res, error) {
   res.end(JSON.stringify({ error }));
 }
 
-export default async function handler(req, res) {
+// One request at a time per instance. The vfs cache and server.js's `db` are module-wide: a
+// second request's begin() would clear the first one's pending writes, and its reloadDb() would
+// swap `db` under it. vercel.json turns Fluid compute off so an instance never gets two requests
+// at once; this keeps that true even if the setting is ever flipped.
+export function serialize(fn) {
+  let tail = Promise.resolve();
+  return (...args) => {
+    const run = tail.then(() => fn(...args));
+    tail = run.catch(() => {});
+    return run;
+  };
+}
+
+export default serialize(async function handler(req, res) {
   if (!vfs) throw new Error('vercel-handler needs STORAGE_DRIVER=supabase (or memory in tests)');
   const raw = await readRaw(req);
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
@@ -82,4 +95,4 @@ export default async function handler(req, res) {
     }
   }
   return unavailable(res, 'busy, try again');
-}
+});

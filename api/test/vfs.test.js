@@ -61,6 +61,16 @@ test('state files are written before db.json, so a state conflict leaves db.json
   assert.equal(remote.rows.get('db.json').body, 'old');
 });
 
+test('used-once tokens are committed last: a db.json conflict leaves challenges.json as it was', async () => {
+  const remote = createMemoryRemote({ 'db.json': 'd1', 'challenges.json': '[["c1",{}]]' });
+  const v = await fresh(remote);
+  v.fs.writeFileSync(at('challenges.json'), '[]');   // the ceremony consumed its challenge…
+  v.fs.writeFileSync(at('db.json'), 'd2');           // …then saved the account
+  remote.rows.set('db.json', { body: 'other', version: 2 });
+  await assert.rejects(v.commit(), e => e instanceof ConflictError && e.file === 'db.json');
+  assert.equal(remote.rows.get('challenges.json').body, '[["c1",{}]]');
+});
+
 test('begin fetches only the rows whose version moved', async () => {
   const remote = createMemoryRemote({ 'db.json': 'a', 'state-u_1.json': 'b' });
   const asked = [];

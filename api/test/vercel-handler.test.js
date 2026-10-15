@@ -17,7 +17,23 @@ remoteStore.rows.set('db.json', {
   version: 1,
   body: JSON.stringify({ users: [{ id: 'u_1', name: 'Ronaldo' }], creds: [], subs: [], invites: [] }),
 });
-const { default: handler } = await import('../vercel-handler.js');
+const { default: handler, serialize } = await import('../vercel-handler.js');
+
+test('serialize runs one call at a time, in order, and a failure does not jam the queue', async () => {
+  const order = [];
+  const run = serialize(async (id, ms, fail) => {
+    order.push('start ' + id);
+    await new Promise(r => setTimeout(r, ms));
+    order.push('end ' + id);
+    if (fail) throw new Error('boom');
+    return id;
+  });
+  const results = await Promise.allSettled([run(1, 30, true), run(2, 5), run(3, 1)]);
+  assert.deepEqual(order, ['start 1', 'end 1', 'start 2', 'end 2', 'start 3', 'end 3']);
+  assert.equal(results[0].status, 'rejected');
+  assert.equal(results[1].value, 2);
+  assert.equal(results[2].value, 3);
+});
 
 function cookie(uid = 'u_1') {
   const payload = `${uid}:${Date.now() + 86400000}:0`;
@@ -115,6 +131,17 @@ test('a pairing code written by another instance can be redeemed', async () => {
   const r = await call('POST', '/api/pair/redeem', { body: { code: 'ZZZZ2345' } });
   assert.equal(r.status, 200);
   assert.ok(!remoteStore.rows.get('pairings.json').body.includes('ZZZZ2345'));
+});
+
+test('expired pairing codes are pruned from the stored file on the next write', async () => {
+  const row = remoteStore.rows.get('pairings.json');
+  const entries = [['OLDC0DE2', { uid: 'u_9', exp: Date.now() - 1000 }]];
+  remoteStore.rows.set('pairings.json', { body: JSON.stringify(entries), version: (row?.version || 0) + 1 });
+  const made = await call('POST', '/api/pair/create', { body: {}, headers: { cookie: cookie() } });
+  assert.equal(made.status, 200);
+  const stored = remoteStore.rows.get('pairings.json').body;
+  assert.ok(!stored.includes('OLDC0DE2'));
+  assert.ok(stored.includes(made.json.code));
 });
 
 test('storage unreachable is a 503, never a 200', async () => {

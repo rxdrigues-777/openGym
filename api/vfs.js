@@ -25,8 +25,12 @@ const wantsString = enc => {
   return typeof e === 'string' && /^utf-?8$/i.test(e);
 };
 // Per-user documents first: they are the ones two devices race for, and a conflict there must
-// stop the commit before db.json (bookkeeping such as lastPull) is written on its behalf.
-const commitOrder = (a, b) => (b[0].startsWith('state-') - a[0].startsWith('state-'));
+// stop the commit before db.json (bookkeeping such as lastPull) is written on its behalf. Then
+// db.json, and only then everything else — challenges.json and pairings.json above all: a
+// ceremony removes its used-once token before it saves the account, and if that save loses a
+// race the rerun must still find the token, or the user is sent back to Face ID for nothing.
+const rank = name => (name.startsWith('state-') ? 0 : name.startsWith('db.json') ? 1 : 2);
+const commitOrder = (a, b) => rank(a[0]) - rank(b[0]);
 
 export function createVfs({ dataDir, remote, env = {} }) {
   const root = path.resolve(dataDir);

@@ -692,7 +692,7 @@ function csrfOk(req, key) {
 // passkey on the owner's profile and a session for it, without using the code up, as often as
 // wanted, and past "sign out everywhere".
 // On a serverless deployment the two halves of a ceremony may run on different instances (FileMap).
-const challenges = vfs ? new FileMap(fs, path.join(DATA, 'challenges.json')) : new Map(); // cid -> {kind, challenge, name?, uid?, exp}
+const challenges = vfs ? new FileMap(fs, path.join(DATA, 'challenges.json'), { isExpired: c => c.exp < Date.now() }) : new Map(); // cid -> {kind, challenge, name?, uid?, exp}
 // POST /api/login/options is anonymous and unthrottled, and every call leaves a challenge here
 // for five minutes, so the Map has a ceiling: past it the oldest goes. A ceremony takes seconds,
 // so only a flood far beyond any real sign-in traffic reaches back far enough to cost one.
@@ -715,7 +715,7 @@ setInterval(() => { for (const [k, v] of challenges) if (v.exp < Date.now()) cha
 // A passkey ceremony can't run inside the app's WebView (its origin never matches RP_ID), so the
 // app authenticates by redeeming a short code minted from an already signed-in browser tab —
 // same 5-min-TTL/one-shot shape as the WebAuthn challenge store above.
-const pairings = vfs ? new FileMap(fs, path.join(DATA, 'pairings.json')) : new Map(); // code -> {uid, exp}
+const pairings = vfs ? new FileMap(fs, path.join(DATA, 'pairings.json'), { isExpired: p => p.exp < Date.now() }) : new Map(); // code -> {uid, exp}
 const PAIR_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I — read off a screen
 function makePairCode() {
   let code;
