@@ -1,0 +1,21 @@
+/* Cadê o Shape — the brand layer (spec 2026-10-15-etapa4 §4). Loaded after index.css, so these
+   tokens win; index.css itself stays as upstream ships it. Style A: the watch app's look. */
+@import '@fontsource/barlow/400.css';
+@import '@fontsource/barlow/500.css';
+@import '@fontsource/barlow/600.css';
+@import '@fontsource/barlow/700.css';
+@import '@fontsource/big-shoulders-display/700.css';
+@import '@fontsource/big-shoulders-display/800.css';
+@import '@fontsource/big-shoulders-display/900.css';
+
+:root, :root[data-theme] {
+  --bg:#000000; --bg-el:#0b0b0d;
+  --surface:#141518; --surface-2:#1f2125; --surface-3:#2a2d32;
+  --label:#f2f2f2; --label-2:#8c9097; --label-3:rgba(140,144,151,.72); --label-4:rgba(140,144,151,.36);
+  --sep:rgba(140,144,151,.22); --sep-op:rgba(140,144,151,.16);
+  --green:#3ccb7f; --yellow:#f5c33b; --blue:#4c8dff; --red:#fa0c17; --orange:#ff8a1f;
+  --r-card:22px; --r:16px; --r-lg:20px;
+  --font-text:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-display:'Big Shoulders Display','Barlow',system-ui,sans-serif;
+}
+body{font-family:var(--font-text);letter-spacing:0}

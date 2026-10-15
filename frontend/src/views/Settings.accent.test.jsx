@@ -6,6 +6,8 @@ import Settings from './Settings.jsx'
 import { searchSettings } from './settings-pages.js'
 import { setRestAccent } from '../lib/rest-alert.js'
 import { readableIn } from '../lib/accent.js'
+// Cadê o Shape locks the look (brand/brand.js); these upstream tests exercise the picker itself.
+vi.mock('../brand/brand.js', async orig => { const m = await orig(); return { ...m, BRAND: { ...m.BRAND, lockedLook: false } } })
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 

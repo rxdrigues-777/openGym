@@ -28,6 +28,7 @@ import { referencedFiles } from '../lib/media-refs.js'
 import { mediaStore } from '../lib/media-store.js'
 import { syncMedia, fetchToStore } from '../lib/media-sync.js'
 import { getMediaStatus, subscribeMediaStatus, pendingRefCount } from '../lib/media-owed.js'
+import { BRAND } from '../brand/brand.js'
 import { limitsFrom, fmtMB, MB } from '../lib/media-limits.js'
 import { setRestAccent } from '../lib/rest-alert.js'
 import { CUSTOM, accentKey, adjustedIn, applyAccent, cleanHex, inkOn, isGrey } from '../lib/accent.js'
@@ -409,7 +410,7 @@ export default function Settings({ page = null, find = null, via = null }) {
     plan: () => (mode === 'rotation' ? t('Rotation') : t('Fixed Week')) + ' · ' + shortWeekday(weekStartOf(S) === SUNDAY ? 0 : 1),
     units: () => (S.unit || 'kg') + ' · ' + (LANGS[lang] || lang),
     equipment: () => (S.equipFilterOn && activeProfile ? activeProfile.name : t('Everything')),
-    look: () => themeLabel + ' · ' + accentLabel(S),
+    look: () => BRAND.lockedLook ? t('Body diagram') : themeLabel + ' · ' + accentLabel(S),
     coach: () => (coachLocal?.mode === 'server' ? t('Your server') : coachLocal?.mode === 'byok' ? t('Your API key') : t('Off')),
     data: () => '',
     about: () => 'v' + __APP_VERSION__,
@@ -710,6 +711,8 @@ export default function Settings({ page = null, find = null, via = null }) {
 
     look: () => <>
       <Section footer={DEMO || MOBILE || !user ? undefined : t('synced with your profile')}>
+        {/* Cadê o Shape: the look is the brand's (brand/brand.js lockedLook), so neither row is offered. */}
+        {!BRAND.lockedLook && <>
         <Row icon="moon" iconTint="var(--indigo)" title={t('Theme')}>
           <Segmented
             className="seg-inline"
@@ -728,6 +731,7 @@ export default function Settings({ page = null, find = null, via = null }) {
           <span className="lrow-v">{accentLabel(S)}</span>
           <AccentSwatches S={S} update={update} />
         </div>
+        </>}
         {/* How the muscle map is drawn. The exercise drawings follow it until they are set below. */}
         <Row icon="figureStrength" iconTint="var(--teal)" title={t('Body diagram')}>
           <Segmented
