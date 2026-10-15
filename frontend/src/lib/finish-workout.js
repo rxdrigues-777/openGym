@@ -1,7 +1,15 @@
 // The persisted boundary for a finished session. Keep this pure so compatibility tests can
 // exercise the exact shape the UI writes without mounting React or mutating store state.
-import { bestWeightForEntry, cleanupSg } from './history.js'
-import { hasCompletedWork, isSideSet } from './workout-model.js'
+import { bestWeightForEntry, bestWeightFor, cleanupSg, workoutVolume } from './history.js'
+import { hasCompletedWork, isSideSet, isWarmupRow } from './workout-model.js'
+import { EXIDX, betterWeight, beatsWeight, isCustomEx } from './exercises.js'
+import { entryDbLoad } from './dumbbells.js'
+import { is1RMRecord } from './onerm.js'
+import { exerciseMuscleSnapshot } from './muscles.js'
+import { stampWorkout } from './sync-merge.js'
+import { rebuildPrHistory } from './workout-date.js'
+import { completeBackfill, backfillEnd } from './backfill.js'
+import { refillAfter } from './rotation.js'
 
 // planSec is live-session bookkeeping: a hold displaced before it finished puts its plan aside so
 // the row still knows what it is asking for (Workout.startTimed). A finished session keeps only
@@ -126,4 +134,53 @@ export function buildCompletedWorkout(active, { end = Date.now(), prs = [], snap
     ...(allNoProg ? { excludeFromProgression: true } : {}),
     ...(sessionNote ? { note: sessionNote } : {}),
   }
+}
+
+// What finishing a session does to the profile, without the screen around it: the records it
+// sets, the workout it files, the weights it confirms, the rotation it refills. The app's Finish
+// button and the watch's upload (api/watch.js) both go through here, so a workout logged on the
+// wrist reads back exactly like one logged on the phone. `s` is the whole state and is changed in
+// place; `active` is the session being finished (the app passes s.active, the server one it built).
+export function finishIntoState(s, active, { now = Date.now(), end, today } = {}) {
+  const A = active
+  const past = !!A.backfill
+  const prs = []
+  const e1prs = []
+  // A workout logged into the past is held against the history before it, the way an edit of a
+  // saved one is (rebuildPrHistory, below); the confirmed weights are left alone either way.
+  if (!past) A.entries.forEach(e => {
+    const loads = e.sets.filter(x => x.done && !isWarmupRow(x)).map(x => x.w).filter(w => w > 0)
+    const mx = loads.length ? loads.reduce((a, b) => betterWeight(e.id, a, b)) : 0
+    if (beatsWeight(e.id, mx, bestWeightFor(s, e.id, entryDbLoad(e)))) prs.push(e.id)
+    // A heavier estimate without a heavier top set is its own kind of progress, reported apart.
+    const rec = is1RMRecord(s, e.id, e)
+    if (rec && !prs.includes(e.id)) e1prs.push({ id: e.id, ...rec })
+  })
+  const w = buildCompletedWorkout(A, {
+    end: end ?? (past ? backfillEnd(A) : sessionEnd(A, now)),
+    prs,
+    snapshotFor: e => isCustomEx(EXIDX[e.id]) ? exerciseMuscleSnapshot(EXIDX[e.id]) : null,
+  })
+  w.vol = workoutVolume(w)
+  let shown = w
+  if (past) {
+    // Its start and end are in the past; the stamp says when it was logged (lib/sync-merge.js).
+    stampWorkout(w, now)
+    const replaced = A.backfill.replaceId ? s.workouts.find(x => x.id === A.backfill.replaceId) : null
+    const touched = [...new Set([...(replaced?.entries || []), ...w.entries].map(e => e?.id).filter(id => id != null))]
+    s.workouts = rebuildPrHistory(completeBackfill(s.workouts, A, w, now), touched, w)
+    shown = s.workouts.find(x => x === w || (w.id != null && x.id === w.id)) || w
+    prs.push(...[...(shown.prs || [])])
+  } else {
+    w.entries.forEach(e => {
+      const mx = bestWeightForEntry(e)
+      if (mx > 0 && beatsWeight(e.id, mx, (s.exWeights[e.id] || {}).w || 0)) s.exWeights[e.id] = { w: mx, d: w.d }
+    })
+    s.workouts.push(w)
+  }
+  s.active = null
+  // A rotation pass this app manages starts its next pass the moment the last session lands.
+  if (today) refillAfter(s, w, today, now)
+  else refillAfter(s, w)
+  return { w: shown, prs, e1prs }
 }
