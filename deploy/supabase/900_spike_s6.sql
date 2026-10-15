@@ -9,12 +9,11 @@ create table if not exists public.s6_recordings (
   created_at timestamptz not null default now()
 );
 alter table public.s6_recordings enable row level security;
-drop policy if exists "s6 insert only" on public.s6_recordings;
 create policy "s6 insert only" on public.s6_recordings
   for insert to anon with check (length(csv) < 400000);
 
 -- Security definer: anon has no SELECT under RLS, so a plain count would always see zero rows.
-create or replace function public.s6_cap() returns trigger
+create function public.s6_cap() returns trigger
   language plpgsql security definer set search_path = '' as $$
 begin
   if (select count(*) from public.s6_recordings) >= 100 then
@@ -22,6 +21,8 @@ begin
   end if;
   return new;
 end $$;
-drop trigger if exists s6_cap on public.s6_recordings;
 create trigger s6_cap before insert on public.s6_recordings
   for each row execute function public.s6_cap();
+
+-- s6_cap is a trigger function; nobody should reach it through /rest/v1/rpc (Supabase advisor).
+revoke execute on function public.s6_cap() from public, anon, authenticated;
